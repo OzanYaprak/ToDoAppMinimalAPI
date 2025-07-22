@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.CompilerServices;
 using ToDoAppMinimalAPI.Entities;
@@ -43,5 +45,72 @@ namespace ToDoAppMinimalAPI.Configuration
                 });
             }));
         }
+
+        public static IServiceCollection AddCustomCors(this IServiceCollection services) 
+        {
+            services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAllOrigins", builder => { builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader(); });
+                options.AddPolicy("AllowSpecificOrigins", builder =>  { builder.WithOrigins("https://localhost:7206", "http://localhost:5116").AllowAnyMethod().AllowAnyHeader().AllowCredentials(); });
+            });
+
+            return services;
+        }
+
+        public static IServiceCollection AddCustomSwagger(this IServiceCollection services) 
+        {
+            services.AddSwaggerGen(x =>
+            {
+                x.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Title = "ToDoAppMinimalAPI",
+                    Version = "v1",
+                    Description = "A simple example ASP.NET Core Minimal Web API",
+                    Contact = new OpenApiContact
+                    {
+                        Name = "Ozan Yaprak",
+                        Email = "oznyprk@gmail.com",
+                        Url = new Uri("https://github.com/OzanYaprak")
+                    },
+                    License = new OpenApiLicense
+                    {
+                        Name = "MIT License",
+                        Url = new Uri("https://opensource.org/license/mit/")
+                    },
+                    TermsOfService = new Uri("https://www.google.com.tr")
+                });
+                x.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme 
+                {
+                    In = ParameterLocation.Header,
+                    Description = "JWT Authorization header using the Bearer scheme.",
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer"
+                });
+                x.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        new string[] {}
+                    }
+                });
+            });
+            return services;
+        }
+
+        //public static IServiceCollection UseSqlServerContext(this IServiceCollection services, IConfiguration configuration)
+        //{
+        //    {
+        //        services.AddDbContext<RepositoryContext>(options => options.UseSqlServer(configuration.GetConnectionString("sqlConnection")));
+        //        return services;
+        //    }
+        //}
     }
 }
