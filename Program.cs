@@ -1,4 +1,5 @@
 
+using ToDoAppMinimalAPI.APIs;
 using ToDoAppMinimalAPI.Configuration;
 
 namespace ToDoAppMinimalAPI
@@ -15,11 +16,12 @@ namespace ToDoAppMinimalAPI
             builder.Services.AddSwaggerGen();
             builder.Services.AddCustomCors(); // Custom CORS Middleware 
             builder.Services.AddCustomSwagger(); // Custom Swagger Middleware
+            builder.Services.CustomIocRegisters(); // Custom IOC Registers
+            builder.Services.UseSqlServerContext(builder.Configuration); // Custom SQL Server Context Middleware
+            builder.Services.RepositoryIocRegisters(); // Custom Repository IOC Registers
+            builder.Services.ServicesIocRegisters(); // Custom Services IOC Registers
 
             var app = builder.Build();
-
-
-
 
             if (app.Environment.IsDevelopment())
             {
@@ -33,6 +35,8 @@ namespace ToDoAppMinimalAPI
                 });
             }
 
+
+            app.ToDoAppAPIs(); // Custom API Extensions Middleware
             app.UseCustomExceptionHandler(); // Custom Exception Handler Middleware
             app.UseHttpsRedirection();
             app.UseAuthorization();

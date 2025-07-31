@@ -1,10 +1,15 @@
 ﻿using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.CompilerServices;
 using ToDoAppMinimalAPI.Entities;
-using ToDoAppMinimalAPI.Exceptions;
+using ToDoAppMinimalAPI.Exceptions.BaseExceptions;
+using ToDoAppMinimalAPI.Interfaces;
+using ToDoAppMinimalAPI.Repositories;
+using ToDoAppMinimalAPI.Services;
+using ToDoAppMinimalAPI.Validators;
 
 namespace ToDoAppMinimalAPI.Configuration
 {
@@ -16,9 +21,9 @@ namespace ToDoAppMinimalAPI.Configuration
             {
                 appError.Run(async (context) => 
                 {
-                    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-                    context.Response.ContentType = "application/json";
-                    
+                    context.Response.StatusCode = StatusCodes.Status500InternalServerError; // Varsayılan olarak yanıt durum kodunu 500 Internal Server Error olarak ayarlıyor.
+                    context.Response.ContentType = "application/json"; // Varsayılan olarak yanıt içeriğinin JSON formatında olduğunu belirtiyor.
+
                     var contextFeature = context.Features.Get<IExceptionHandlerPathFeature>();
 
                     if (contextFeature is not null)
@@ -27,11 +32,12 @@ namespace ToDoAppMinimalAPI.Configuration
                         {
                             NotFoundException => StatusCodes.Status404NotFound, // Custom Exception
                             BadRequestException => StatusCodes.Status400BadRequest, // Custom Exception
+                            NoContentException => StatusCodes.Status204NoContent, // Custom Exception
 
                             ArgumentOutOfRangeException => StatusCodes.Status400BadRequest, 
                             KeyNotFoundException => StatusCodes.Status404NotFound, 
                             ArgumentException => StatusCodes.Status400BadRequest, 
-                            ValidationException => StatusCodes.Status422UnprocessableEntity, 
+                            ValidationException => StatusCodes.Status422UnprocessableEntity,
                             _ => StatusCodes.Status500InternalServerError, // Diğer tüm durumlarda 500 Internal Server Error döndürüyoruz.
                         };
 
@@ -45,7 +51,6 @@ namespace ToDoAppMinimalAPI.Configuration
                 });
             }));
         }
-
         public static IServiceCollection AddCustomCors(this IServiceCollection services) 
         {
             services.AddCors(options =>
@@ -56,7 +61,6 @@ namespace ToDoAppMinimalAPI.Configuration
 
             return services;
         }
-
         public static IServiceCollection AddCustomSwagger(this IServiceCollection services) 
         {
             services.AddSwaggerGen(x =>
@@ -79,38 +83,55 @@ namespace ToDoAppMinimalAPI.Configuration
                     },
                     TermsOfService = new Uri("https://www.google.com.tr")
                 });
-                x.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme 
-                {
-                    In = ParameterLocation.Header,
-                    Description = "JWT Authorization header using the Bearer scheme.",
-                    Name = "Authorization",
-                    Type = SecuritySchemeType.ApiKey,
-                    Scheme = "Bearer"
-                });
-                x.AddSecurityRequirement(new OpenApiSecurityRequirement
-                {
-                    {
-                        new OpenApiSecurityScheme
-                        {
-                            Reference = new OpenApiReference
-                            {
-                                Type = ReferenceType.SecurityScheme,
-                                Id = "Bearer"
-                            }
-                        },
-                        new string[] {}
-                    }
-                });
+                //x.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme 
+                //{
+                //    In = ParameterLocation.Header,
+                //    Description = "JWT Authorization header using the Bearer scheme.",
+                //    Name = "Authorization",
+                //    Type = SecuritySchemeType.ApiKey,
+                //    Scheme = "Bearer"
+                //});
+                //x.AddSecurityRequirement(new OpenApiSecurityRequirement
+                //{
+                //    {
+                //        new OpenApiSecurityScheme
+                //        {
+                //            Reference = new OpenApiReference
+                //            {
+                //                Type = ReferenceType.SecurityScheme,
+                //                Id = "Bearer"
+                //            }
+                //        },
+                //        new string[] {}
+                //    }
+                //});
             });
             return services;
         }
+        public static IServiceCollection CustomIocRegisters(this IServiceCollection services)
+        {
+            services.AddAutoMapper(typeof(Program));
+            services.AddScoped<CustomValidator>(); // Custom Validator for DTOs
+            return services;
+        }
+        public static IServiceCollection UseSqlServerContext(this IServiceCollection services, IConfiguration configuration)
+        {
+            {
+                services.AddDbContext<ToDoAppDbContext>(options => options.UseSqlServer(configuration.GetConnectionString("sqlConnection")));
+                return services;
+            }
+        }
+        public static IServiceCollection RepositoryIocRegisters(this IServiceCollection services) 
+        {
+            services.AddScoped<ToDoAppRepository>(); 
 
-        //public static IServiceCollection UseSqlServerContext(this IServiceCollection services, IConfiguration configuration)
-        //{
-        //    {
-        //        services.AddDbContext<RepositoryContext>(options => options.UseSqlServer(configuration.GetConnectionString("sqlConnection")));
-        //        return services;
-        //    }
-        //}
+            return services; 
+        }
+        public static IServiceCollection ServicesIocRegisters(this IServiceCollection services) 
+        {
+            services.AddScoped<IToDoAppService, ToDoAppService>(); 
+
+            return services; 
+        }
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace ToDoAppMinimalAPI.Exceptions
+﻿namespace ToDoAppMinimalAPI.Exceptions.BaseExceptions
 {
     public class BadRequestException : Exception
     {
